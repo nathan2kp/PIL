@@ -66,7 +66,7 @@ df = df[df['Fleet'].isin(selected_fleets)]
 selected_alerts = st.sidebar.multiselect("Select Alert Types", options=alert_types, default=alert_types)
 df = df[df['Alert Type'].isin(selected_alerts)]
 
-# Vessel filter (dynamic based on fleet/alert type selections)
+# Vessel filter
 available_vessels = sorted(df['Vessel'].unique())
 selected_vessels = st.sidebar.multiselect("Select Vessels", options=available_vessels, default=available_vessels)
 df = df[df['Vessel'].isin(selected_vessels)]
@@ -91,7 +91,6 @@ st.title("🚨 Alert Analytics Dashboard")
 
 # KPI Cards
 col1, col2, col3, col4 = st.columns(4)
-
 with col1:
     st.metric("Total Alerts", f"{total_alerts:,}")
     st.markdown(f"<span style='font-size:13px;'>Active: {active_alerts:,} &nbsp;&nbsp;&nbsp;&nbsp; Resolved: {resolved_alerts:,}</span>", unsafe_allow_html=True)
@@ -115,7 +114,6 @@ alert_type_counts = df['Alert Type'].value_counts()
 fleet_alerts = df['Fleet'].value_counts()
 
 col5, col6 = st.columns(2)
-
 with col5:
     st.markdown("### Alert Type Breakdown")
     fig2 = go.Figure(data=[go.Pie(labels=alert_type_counts.index,
@@ -141,3 +139,75 @@ fig4 = px.bar(x=res_time_counts.index, y=res_time_counts.values,
               labels={'x': 'Resolution Time', 'y': 'Number of Alerts'})
 fig4.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
 st.plotly_chart(fig4, use_container_width=True)
+
+# --------------------------
+# SECTION: Overview KPIs
+# --------------------------
+st.markdown("## 🧮 Overview KPIs")
+
+sla_threshold = 2
+within_sla_pct = round((df['Resolution Time (hrs)'] <= sla_threshold).mean() * 100, 1)
+resolution_rate = round((df['Auto-Cleared'].sum() / len(df)) * 100, 1)
+
+colA, colB = st.columns(2)
+colA.metric("Resolved Within 2 Hours (SLA)", f"{within_sla_pct}%")
+colB.metric("Auto-Cleared Resolution Rate", f"{resolution_rate}%")
+
+# --------------------------
+# SECTION: Root Cause Analysis
+# --------------------------
+st.markdown("## 🔍 Root Cause Analysis")
+
+colC, colD = st.columns(2)
+with colC:
+    st.markdown("### 🏆 Top 5 Alert Types")
+    top_alerts = df['Alert Type'].value_counts().head(5)
+    fig = px.bar(top_alerts, x=top_alerts.values, y=top_alerts.index,
+                 orientation='h', labels={'x': 'Count', 'index': 'Alert Type'})
+    st.plotly_chart(fig, use_container_width=True)
+
+with colD:
+    st.markdown("### 🚢 Top 5 Vessels with Most Alerts")
+    top_vessels = df['Vessel'].value_counts().head(5)
+    fig = px.bar(top_vessels, x=top_vessels.values, y=top_vessels.index,
+                 orientation='h', labels={'x': 'Count', 'index': 'Vessel'})
+    st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("### 🐌 Slowest Alerts to Resolve")
+slowest_types = df.groupby('Alert Type')['Resolution Time (hrs)'].mean().sort_values(ascending=False).head(5)
+fig = px.bar(slowest_types, x=slowest_types.values, y=slowest_types.index,
+             orientation='h', labels={'x': 'Avg Resolution Time (hrs)', 'index': 'Alert Type'})
+st.plotly_chart(fig, use_container_width=True)
+
+# --------------------------
+# SECTION: Time Trends
+# --------------------------
+st.markdown("## 📈 Time Trends")
+
+st.markdown("### 📊 Alert Density per Vessel per Week")
+df['Week'] = df['Date'].dt.to_period("W").apply(lambda r: r.start_time)
+density = df.groupby(['Week', 'Vessel']).size().reset_index(name='Alert Count')
+fig = px.line(density, x='Week', y='Alert Count', color='Vessel')
+st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("### 📛 Alert Spike Detection")
+daily_counts = df.groupby('Date').size().reset_index(name='Alert Count')
+mean = daily_counts['Alert Count'].mean()
+threshold = mean * 1.5
+spikes = daily_counts[daily_counts['Alert Count'] > threshold]
+
+fig = px.line(daily_counts, x='Date', y='Alert Count')
+fig.add_scatter(x=spikes['Date'], y=spikes['Alert Count'],
+                mode='markers', name='Spike', marker=dict(color='red', size=10))
+fig.add_hline(y=threshold, line_dash='dash', line_color='red', annotation_text='Spike Threshold')
+st.plotly_chart(fig, use_container_width=True)
+
+# --------------------------
+# SECTION: Crew / Process Flags
+# --------------------------
+st.markdown("## 🧑‍✈️ Crew / Process Flags")
+
+st.markdown("### 🔁 Repeat Alerts (>=3) per Vessel & Type")
+repeat_alerts = df.groupby(['Vessel', 'Alert Type']).size().reset_index(name='Count')
+repeat_alerts = repeat_alerts[repeat_alerts['Count'] >= 3]
+st.dataframe(repeat_alerts.sort_values(by='Count', ascending=False))
