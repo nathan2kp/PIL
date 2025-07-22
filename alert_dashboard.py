@@ -36,8 +36,8 @@ st.sidebar.header("🔎 Filters")
 
 # Date filter options
 period = st.sidebar.selectbox("Select Period", ["Last 7 Days", "Last 30 Days", "Quarter to Date", "Year to Date", "Custom Range"])
-
 today = df["Date"].max()
+
 if period == "Last 7 Days":
     start_date = today - timedelta(days=7)
     end_date = today
@@ -58,11 +58,18 @@ else:
 
 df = df[(df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))]
 
-# Fleet and Alert Type filters
+# Fleet filter
 selected_fleets = st.sidebar.multiselect("Select Fleets", options=fleets, default=fleets)
-selected_alerts = st.sidebar.multiselect("Select Alert Types", options=alert_types, default=alert_types)
+df = df[df['Fleet'].isin(selected_fleets)]
 
-df = df[df['Fleet'].isin(selected_fleets) & df['Alert Type'].isin(selected_alerts)]
+# Alert Type filter
+selected_alerts = st.sidebar.multiselect("Select Alert Types", options=alert_types, default=alert_types)
+df = df[df['Alert Type'].isin(selected_alerts)]
+
+# Vessel filter (dynamic based on fleet/alert type selections)
+available_vessels = sorted(df['Vessel'].unique())
+selected_vessels = st.sidebar.multiselect("Select Vessels", options=available_vessels, default=available_vessels)
+df = df[df['Vessel'].isin(selected_vessels)]
 
 # KPI values
 total_alerts = len(df)
@@ -72,14 +79,14 @@ avg_resolution = round(df['Resolution Time (hrs)'].mean(), 2)
 active_alerts = len(df[~df['Auto-Cleared']])
 resolved_alerts = len(df[df['Auto-Cleared']])
 
-# Grouped by time for line chart
+# Alerts over time
 alerts_time_df = df.groupby("Date").size().reset_index(name="Total Alerts")
 active_df = df[~df['Auto-Cleared']].groupby("Date").size().reset_index(name="Active Alerts")
 resolved_df = df[df['Auto-Cleared']].groupby("Date").size().reset_index(name="Resolved Alerts")
 alerts_time_df = alerts_time_df.merge(active_df, on="Date", how="left").merge(resolved_df, on="Date", how="left")
 alerts_time_df = alerts_time_df.fillna(0)
 
-# Dashboard
+# Dashboard Title
 st.title("🚨 Alert Analytics Dashboard")
 
 # KPI Cards
@@ -90,23 +97,20 @@ with col1:
     st.markdown(f"<span style='font-size:13px;'>Active: {active_alerts:,} &nbsp;&nbsp;&nbsp;&nbsp; Resolved: {resolved_alerts:,}</span>", unsafe_allow_html=True)
 
 col2.metric("Vessels With Alerts", f"{vessels_with_alerts:,}")
-col3.metric("Auto-Cleared Alerts", f"{auto_cleared_percent}%", delta=None)
+col3.metric("Auto-Cleared Alerts", f"{auto_cleared_percent}%")
 col4.metric("Avg Resolution", f"{avg_resolution} hrs")
 
 # Alerts Over Time
 st.markdown("### Alerts Over Time")
 fig1 = go.Figure()
-fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Total Alerts'],
-                          mode='lines+markers', name='Total Alerts'))
-fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Active Alerts'],
-                          mode='lines+markers', name='Active Alerts'))
-fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Resolved Alerts'],
-                          mode='lines+markers', name='Resolved Alerts'))
+fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Total Alerts'], mode='lines+markers', name='Total Alerts'))
+fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Active Alerts'], mode='lines+markers', name='Active Alerts'))
+fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Resolved Alerts'], mode='lines+markers', name='Resolved Alerts'))
 fig1.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0),
                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
 st.plotly_chart(fig1, use_container_width=True)
 
-# Alert Type Breakdown and Fleet Comparison
+# Alert Type and Fleet Breakdown
 alert_type_counts = df['Alert Type'].value_counts()
 fleet_alerts = df['Fleet'].value_counts()
 
@@ -128,7 +132,7 @@ with col6:
 
 # Resolution Time Distribution
 bins = [0, 0.25, 1, 3, 6, 12, np.inf]
-labels = ['0–1 hr', '1–3 hr', '3–12 hrs', '12–24 hrs', '24–48 hrs', '> 48 hrs']
+labels = ['0–15 min', '15–60 m', '1–3 hrs', '3–6 hrs', '6–12 hrs', '> 12 hrs']
 df['ResBin'] = pd.cut(df['Resolution Time (hrs)'], bins=bins, labels=labels, include_lowest=True)
 res_time_counts = df['ResBin'].value_counts().sort_index()
 
