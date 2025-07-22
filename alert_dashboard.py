@@ -94,7 +94,7 @@ fleet_alerts = df['Fleet'].value_counts()
 
 col5, col6 = st.columns(2)
 with col5:
-    st.markdown("### 🍩 Alert Type Distribution")
+    st.markdown("###  Alert Type Distribution")
     fig_donut = go.Figure(data=[go.Pie(labels=alert_type_counts.index,
                                        values=alert_type_counts.values,
                                        hole=0.55,
@@ -103,13 +103,13 @@ with col5:
     st.plotly_chart(fig_donut, use_container_width=True)
 
 with col6:
-    st.markdown("### 📊 Fleet Comparison")
+    st.markdown("### Fleet Comparison")
     fig3 = px.bar(x=fleet_alerts.values, y=fleet_alerts.index, orientation='h', labels={'x': 'Alerts', 'y': 'Fleet'})
     fig3.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig3, use_container_width=True)
 
 # Area Chart
-st.markdown("### 🔄 Alert Trend ")
+st.markdown("###  Alert Trend ")
 fig_area = px.area(alerts_time_df, x='Date',
                    y=['Active Alerts', 'Resolved Alerts'],
                    labels={'value': 'Number of Alerts', 'variable': 'Alert Status'},
@@ -134,21 +134,21 @@ st.plotly_chart(fig4, use_container_width=True)
 
 colC, colD = st.columns(2)
 with colC:
-    st.markdown("### 🏆 Top 5 Alert Types")
+    st.markdown("###  Top 5 Alert Types")
     top_alerts = df['Alert Type'].value_counts().head(5)
     fig = px.bar(top_alerts, x=top_alerts.values, y=top_alerts.index,
                  orientation='h', labels={'x': 'Count', 'index': 'Alert Type'})
     st.plotly_chart(fig, use_container_width=True)
 
 with colD:
-    st.markdown("### 🚢 Top 5 Vessels with Most Alerts")
+    st.markdown("### Top 5 Vessels with Most Alerts")
     top_vessels = df['Vessel'].value_counts().head(5)
     fig = px.bar(top_vessels, x=top_vessels.values, y=top_vessels.index,
                  orientation='h', labels={'x': 'Count', 'index': 'Vessel'})
     st.plotly_chart(fig, use_container_width=True)
 
 
-st.markdown("### 🔁 Repeat Alerts (>=3) per Vessel & Type")
+st.markdown("###  Repeat Alerts (>=3) per Vessel & Type")
 repeat_alerts = df.groupby(['Vessel', 'Alert Type']).size().reset_index(name='Count')
 repeat_alerts = repeat_alerts[repeat_alerts['Count'] >= 3]
 st.dataframe(repeat_alerts.sort_values(by='Count', ascending=False))
