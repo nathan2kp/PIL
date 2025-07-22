@@ -7,6 +7,17 @@ from datetime import datetime, timedelta
 
 # Set up page
 st.set_page_config(page_title="Alert Analytics Dashboard", layout="wide")
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #0E2C36;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # Simulate the dataset
 np.random.seed(42)
