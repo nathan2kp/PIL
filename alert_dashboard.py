@@ -14,7 +14,7 @@ base_date = pd.to_datetime("2025-01-01")
 dates = pd.date_range(start=base_date, end=base_date + pd.DateOffset(days=120))
 vessels = [f"Vessel_{i}" for i in range(1, 21)]
 fleets = ['Fleet A', 'Fleet B', 'Fleet C', 'Fleet D']
-alert_types = ['Speeding', 'Late Noon', 'Excess Slip', 'Other']
+alert_types = ['Speeding', 'Late Report', 'Excess Slip','Bilge ROB','Sludge ROB','AE Usage','Shaft Generator Usage']
 
 # Create mock alert data
 data = []
@@ -150,7 +150,7 @@ within_sla_pct = round((df['Resolution Time (hrs)'] <= sla_threshold).mean() * 1
 resolution_rate = round((df['Auto-Cleared'].sum() / len(df)) * 100, 1)
 
 colA, colB = st.columns(2)
-colA.metric("Resolved Within 2 Hours (SLA)", f"{within_sla_pct}%")
+colA.metric("Resolved Within 6 Hours", f"{within_sla_pct}%")
 colB.metric("Auto-Cleared Resolution Rate", f"{resolution_rate}%")
 
 # --------------------------
