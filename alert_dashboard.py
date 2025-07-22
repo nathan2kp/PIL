@@ -179,32 +179,7 @@ fig = px.bar(slowest_types, x=slowest_types.values, y=slowest_types.index,
              orientation='h', labels={'x': 'Avg Resolution Time (hrs)', 'index': 'Alert Type'})
 st.plotly_chart(fig, use_container_width=True)
 
-# --------------------------
-# SECTION: Time Trends
-# --------------------------
-st.markdown("## 📈 Time Trends")
 
-st.markdown("### 📊 Alert Density per Vessel per Week")
-df['Week'] = df['Date'].dt.to_period("W").apply(lambda r: r.start_time)
-density = df.groupby(['Week', 'Vessel']).size().reset_index(name='Alert Count')
-fig = px.line(density, x='Week', y='Alert Count', color='Vessel')
-st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("### 📛 Alert Spike Detection")
-daily_counts = df.groupby('Date').size().reset_index(name='Alert Count')
-mean = daily_counts['Alert Count'].mean()
-threshold = mean * 1.5
-spikes = daily_counts[daily_counts['Alert Count'] > threshold]
-
-fig = px.line(daily_counts, x='Date', y='Alert Count')
-fig.add_scatter(x=spikes['Date'], y=spikes['Alert Count'],
-                mode='markers', name='Spike', marker=dict(color='red', size=10))
-fig.add_hline(y=threshold, line_dash='dash', line_color='red', annotation_text='Spike Threshold')
-st.plotly_chart(fig, use_container_width=True)
-
-# --------------------------
-# SECTION: Crew / Process Flags
-# --------------------------
 st.markdown("## 🧑‍✈️ Crew / Process Flags")
 
 st.markdown("### 🔁 Repeat Alerts (>=3) per Vessel & Type")
