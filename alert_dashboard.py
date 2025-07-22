@@ -151,12 +151,6 @@ with colD:
                  orientation='h', labels={'x': 'Count', 'index': 'Vessel'})
     st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("### 🐌 Slowest Alerts to Resolve")
-slowest_types = df.groupby('Alert Type')['Resolution Time (hrs)'].mean().sort_values(ascending=False).head(5)
-fig = px.bar(slowest_types, x=slowest_types.values, y=slowest_types.index,
-             orientation='h', labels={'x': 'Avg Resolution Time (hrs)', 'index': 'Alert Type'})
-st.plotly_chart(fig, use_container_width=True)
-
 
 st.markdown("### 🔁 Repeat Alerts (>=3) per Vessel & Type")
 repeat_alerts = df.groupby(['Vessel', 'Alert Type']).size().reset_index(name='Count')
