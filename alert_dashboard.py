@@ -136,21 +136,6 @@ fig4 = px.bar(x=res_time_counts.index, y=res_time_counts.values, labels={'x': 'R
 fig4.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
 st.plotly_chart(fig4, use_container_width=True)
 
-# --------------------------
-# SECTION: Overview KPIs
-# --------------------------
-st.markdown("## 🧮 Overview KPIs")
-sla_threshold = 2
-within_sla_pct = round((df['Resolution Time (hrs)'] <= sla_threshold).mean() * 100, 1)
-resolution_rate = round((df['Auto-Cleared'].sum() / len(df)) * 100, 1)
-colA, colB = st.columns(2)
-colA.metric("Resolved Within 2 Hours", f"{within_sla_pct}%")
-colB.metric("Auto-Cleared Resolution Rate", f"{resolution_rate}%")
-
-# --------------------------
-# SECTION: Root Cause Analysis
-# --------------------------
-st.markdown("## 🔍 Root Cause Analysis")
 colC, colD = st.columns(2)
 with colC:
     st.markdown("### 🏆 Top 5 Alert Types")
@@ -172,20 +157,10 @@ fig = px.bar(slowest_types, x=slowest_types.values, y=slowest_types.index,
              orientation='h', labels={'x': 'Avg Resolution Time (hrs)', 'index': 'Alert Type'})
 st.plotly_chart(fig, use_container_width=True)
 
-# --------------------------
-# SECTION: Crew / Process Flags
-# --------------------------
-st.markdown("## 🧑‍✈️ Crew / Process Flags")
 
 st.markdown("### 🔁 Repeat Alerts (>=3) per Vessel & Type")
 repeat_alerts = df.groupby(['Vessel', 'Alert Type']).size().reset_index(name='Count')
 repeat_alerts = repeat_alerts[repeat_alerts['Count'] >= 3]
 st.dataframe(repeat_alerts.sort_values(by='Count', ascending=False))
 
-st.markdown("### 🔥 Heatmap of Repeat Alerts by Vessel & Alert Type")
-heatmap_df = df.groupby(['Vessel', 'Alert Type']).size().unstack().fillna(0)
-fig_heatmap = px.imshow(heatmap_df,
-                        labels=dict(x="Alert Type", y="Vessel", color="Count"),
-                        aspect="auto", color_continuous_scale="Reds")
-fig_heatmap.update_layout(height=500, margin=dict(l=0, r=0, t=30, b=0))
-st.plotly_chart(fig_heatmap, use_container_width=True)
+
