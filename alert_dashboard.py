@@ -88,17 +88,28 @@ col2.metric("Vessels With Alerts", f"{vessels_with_alerts:,}")
 col3.metric("Auto-Cleared Alerts", f"{auto_cleared_percent}%")
 col4.metric("Avg Resolution", f"{avg_resolution} hrs")
 
-# Alerts Over Time (Line Chart)
-st.markdown("### 📈 Alerts Over Time – Line View")
-fig1 = go.Figure()
-fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Total Alerts'], mode='lines+markers', name='Total Alerts'))
-fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Active Alerts'], mode='lines+markers', name='Active Alerts'))
-fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Resolved Alerts'], mode='lines+markers', name='Resolved Alerts'))
-fig1.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0), legend=dict(orientation="h", y=1.02, x=1))
-st.plotly_chart(fig1, use_container_width=True)
+# Alert Type and Fleet Breakdown
+alert_type_counts = df['Alert Type'].value_counts()
+fleet_alerts = df['Fleet'].value_counts()
+
+col5, col6 = st.columns(2)
+with col5:
+    st.markdown("### 🍩 Alert Type Distribution (Donut Chart)")
+    fig_donut = go.Figure(data=[go.Pie(labels=alert_type_counts.index,
+                                       values=alert_type_counts.values,
+                                       hole=0.55,
+                                       textinfo='label+percent')])
+    fig_donut.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig_donut, use_container_width=True)
+
+with col6:
+    st.markdown("### 📊 Fleet Comparison")
+    fig3 = px.bar(x=fleet_alerts.values, y=fleet_alerts.index, orientation='h', labels={'x': 'Alerts', 'y': 'Fleet'})
+    fig3.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig3, use_container_width=True)
 
 # Area Chart
-st.markdown("### 🔄 Alert Resolution Trend – Area Chart View")
+st.markdown("### 🔄 Alert Trend – Area Chart View")
 fig_area = px.area(alerts_time_df, x='Date',
                    y=['Active Alerts', 'Resolved Alerts'],
                    labels={'value': 'Number of Alerts', 'variable': 'Alert Status'},
