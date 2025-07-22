@@ -1,0 +1,139 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+from datetime import datetime, timedelta
+
+# Set up page
+st.set_page_config(page_title="Alert Analytics Dashboard", layout="wide")
+
+# Simulate the dataset
+np.random.seed(42)
+base_date = pd.to_datetime("2025-01-01")
+dates = pd.date_range(start=base_date, end=base_date + pd.DateOffset(days=120))
+vessels = [f"Vessel_{i}" for i in range(1, 21)]
+fleets = ['Fleet A', 'Fleet B', 'Fleet C', 'Fleet D']
+alert_types = ['Speeding', 'Late Noon', 'Excess Slip', 'Other']
+
+# Create mock alert data
+data = []
+for date in dates:
+    for _ in range(np.random.randint(5, 15)):
+        data.append({
+            'Date': date,
+            'Fleet': np.random.choice(fleets),
+            'Vessel': np.random.choice(vessels),
+            'Alert Type': np.random.choice(alert_types),
+            'Resolution Time (hrs)': round(np.random.exponential(2), 2),
+            'Auto-Cleared': np.random.choice([True, False], p=[0.6, 0.4])
+        })
+
+df = pd.DataFrame(data)
+
+# Sidebar filters
+st.sidebar.header("🔎 Filters")
+
+# Date filter options
+period = st.sidebar.selectbox("Select Period", ["Last 7 Days", "Last 30 Days", "Quarter to Date", "Year to Date", "Custom Range"])
+
+today = df["Date"].max()
+if period == "Last 7 Days":
+    start_date = today - timedelta(days=7)
+    end_date = today
+elif period == "Last 30 Days":
+    start_date = today - timedelta(days=30)
+    end_date = today
+elif period == "Quarter to Date":
+    start_date = pd.Timestamp(today.year, (today.month-1)//3*3 + 1, 1)
+    end_date = today
+elif period == "Year to Date":
+    start_date = pd.Timestamp(today.year, 1, 1)
+    end_date = today
+else:
+    start_date = st.sidebar.date_input("Start Date", today - timedelta(days=30))
+    end_date = st.sidebar.date_input("End Date", today)
+    if isinstance(start_date, list): start_date = start_date[0]
+    if isinstance(end_date, list): end_date = end_date[0]
+
+df = df[(df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))]
+
+# Fleet and Alert Type filters
+selected_fleets = st.sidebar.multiselect("Select Fleets", options=fleets, default=fleets)
+selected_alerts = st.sidebar.multiselect("Select Alert Types", options=alert_types, default=alert_types)
+
+df = df[df['Fleet'].isin(selected_fleets) & df['Alert Type'].isin(selected_alerts)]
+
+# KPI values
+total_alerts = len(df)
+vessels_with_alerts = df['Vessel'].nunique()
+auto_cleared_percent = round(df['Auto-Cleared'].mean() * 100, 1)
+avg_resolution = round(df['Resolution Time (hrs)'].mean(), 2)
+active_alerts = len(df[~df['Auto-Cleared']])
+resolved_alerts = len(df[df['Auto-Cleared']])
+
+# Grouped by time for line chart
+alerts_time_df = df.groupby("Date").size().reset_index(name="Total Alerts")
+active_df = df[~df['Auto-Cleared']].groupby("Date").size().reset_index(name="Active Alerts")
+resolved_df = df[df['Auto-Cleared']].groupby("Date").size().reset_index(name="Resolved Alerts")
+alerts_time_df = alerts_time_df.merge(active_df, on="Date", how="left").merge(resolved_df, on="Date", how="left")
+alerts_time_df = alerts_time_df.fillna(0)
+
+# Dashboard
+st.title("🚨 Alert Analytics Dashboard")
+
+# KPI Cards
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric("Total Alerts", f"{total_alerts:,}")
+    st.markdown(f"<span style='font-size:13px;'>Active: {active_alerts:,} &nbsp;&nbsp;&nbsp;&nbsp; Resolved: {resolved_alerts:,}</span>", unsafe_allow_html=True)
+
+col2.metric("Vessels With Alerts", f"{vessels_with_alerts:,}")
+col3.metric("Auto-Cleared Alerts", f"{auto_cleared_percent}%", delta=None)
+col4.metric("Avg Resolution", f"{avg_resolution} hrs")
+
+# Alerts Over Time
+st.markdown("### Alerts Over Time")
+fig1 = go.Figure()
+fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Total Alerts'],
+                          mode='lines+markers', name='Total Alerts'))
+fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Active Alerts'],
+                          mode='lines+markers', name='Active Alerts'))
+fig1.add_trace(go.Scatter(x=alerts_time_df['Date'], y=alerts_time_df['Resolved Alerts'],
+                          mode='lines+markers', name='Resolved Alerts'))
+fig1.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0),
+                   legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+st.plotly_chart(fig1, use_container_width=True)
+
+# Alert Type Breakdown and Fleet Comparison
+alert_type_counts = df['Alert Type'].value_counts()
+fleet_alerts = df['Fleet'].value_counts()
+
+col5, col6 = st.columns(2)
+
+with col5:
+    st.markdown("### Alert Type Breakdown")
+    fig2 = go.Figure(data=[go.Pie(labels=alert_type_counts.index,
+                                  values=alert_type_counts.values, hole=0.5)])
+    fig2.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig2, use_container_width=True)
+
+with col6:
+    st.markdown("### Fleet Comparison")
+    fig3 = px.bar(x=fleet_alerts.values, y=fleet_alerts.index,
+                  orientation='h', labels={'x': 'Alerts', 'y': 'Fleet'})
+    fig3.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig3, use_container_width=True)
+
+# Resolution Time Distribution
+bins = [0, 0.25, 1, 3, 6, 12, np.inf]
+labels = ['0–1 hr', '1–3 hr', '3–12 hrs', '12–24 hrs', '24–48 hrs', '> 48 hrs']
+df['ResBin'] = pd.cut(df['Resolution Time (hrs)'], bins=bins, labels=labels, include_lowest=True)
+res_time_counts = df['ResBin'].value_counts().sort_index()
+
+st.markdown("### Resolution Time Distribution")
+fig4 = px.bar(x=res_time_counts.index, y=res_time_counts.values,
+              labels={'x': 'Resolution Time', 'y': 'Number of Alerts'})
+fig4.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+st.plotly_chart(fig4, use_container_width=True)
