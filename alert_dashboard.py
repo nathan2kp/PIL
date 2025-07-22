@@ -94,7 +94,7 @@ fleet_alerts = df['Fleet'].value_counts()
 
 col5, col6 = st.columns(2)
 with col5:
-    st.markdown("### 🍩 Alert Type Distribution (Donut Chart)")
+    st.markdown("### 🍩 Alert Type Distribution")
     fig_donut = go.Figure(data=[go.Pie(labels=alert_type_counts.index,
                                        values=alert_type_counts.values,
                                        hole=0.55,
@@ -109,7 +109,7 @@ with col6:
     st.plotly_chart(fig3, use_container_width=True)
 
 # Area Chart
-st.markdown("### 🔄 Alert Trend – Area Chart View")
+st.markdown("### 🔄 Alert Trend ")
 fig_area = px.area(alerts_time_df, x='Date',
                    y=['Active Alerts', 'Resolved Alerts'],
                    labels={'value': 'Number of Alerts', 'variable': 'Alert Status'},
@@ -121,21 +121,6 @@ st.plotly_chart(fig_area, use_container_width=True)
 alert_type_counts = df['Alert Type'].value_counts()
 fleet_alerts = df['Fleet'].value_counts()
 
-col5, col6 = st.columns(2)
-with col5:
-    st.markdown("### 🍩 Alert Type Distribution (Donut Chart)")
-    fig_donut = go.Figure(data=[go.Pie(labels=alert_type_counts.index,
-                                       values=alert_type_counts.values,
-                                       hole=0.55,
-                                       textinfo='label+percent')])
-    fig_donut.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
-    st.plotly_chart(fig_donut, use_container_width=True)
-
-with col6:
-    st.markdown("### 📊 Fleet Comparison")
-    fig3 = px.bar(x=fleet_alerts.values, y=fleet_alerts.index, orientation='h', labels={'x': 'Alerts', 'y': 'Fleet'})
-    fig3.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
-    st.plotly_chart(fig3, use_container_width=True)
 
 # Resolution Time Distribution
 bins = [0, 0.25, 1, 3, 6, 12, np.inf]
